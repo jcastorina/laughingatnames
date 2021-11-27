@@ -1,0 +1,177 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Create Infrastructure for Laughing At Names
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+  IsNotProd: !Not [!Equals [!Ref Environment, "prod"]]
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+
+Mappings:
+  Environment:
+    prod:
+      CloudFrontSSLCertificate: arn:aws:acm:us-west-1:802770908406:certificate/6bdf9f30-43e1-49a9-8b78-9d495af13b01
+      S3Versioning: Enabled
+
+Resources:
+  LaughingAtNamesDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - laughingatnames.com
+          # !If
+          # - IsProd
+          # - - laughingatnames.com
+          # - - !Sub ${Environment}.laughingatnames.com
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /404/index.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          DefaultTTL: 86400
+          ForwardedValues:
+            Cookies:
+              # Cookie Forward allowed values are all, none, whitelist
+              Forward: none
+            QueryString: false
+          MaxTTL: 31536000
+          MinTTL: 0
+          SmoothStreaming: false
+          TargetOriginId: !Sub S3-${Environment}.laughingatnames.com
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        # Logging:
+        #   IncludeCookies: true
+        #   Bucket: S3-laughingatlogs
+        #   Prefix: am-i-necessary
+        Origins:
+          #- CustomOriginConfig:
+          #    OriginProtocolPolicy: http-only
+          - DomainName: !Sub S3-${Environment}.laughingatnames.com
+            Id: !Sub S3-{Environment}.laughingatnames.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub cf-templates-t47eq8cd4vds-us-west-1.s3.amazonaws.com/
+            OriginPath: /
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn:
+            !FindInMap [Environment, !Ref Environment, CloudFrontSSLCertificate]
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+        # Tags:
+        #  - Key: Application
+        #    Value: LaughingAtNames
+        #  - Key: Environment
+        #    Value: !Sub ${Environment}
+
+  LaughingAtNamesOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub ${AWS::StackName}
+
+  LaughingAtNamesS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Sub laughingatnames-${Environment}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - "*"
+            MaxAge: 3000
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: Application
+          Value: LaughingAtNames
+        - Key: Environment
+          Value: !Sub ${Environment}
+      VersioningConfiguration:
+        Status: !FindInMap [Environment, !Ref Environment, S3Versioning]
+      WebsiteConfiguration:
+        ErrorDocument: /404/index.html
+        IndexDocument: index.html
+
+  LaughingAtNamesS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LaughingAtNamesS3Bucket
+      PolicyDocument:
+        Statement:
+          #!If
+          #- IsProd
+          - - Effect: Allow
+              Action:
+                - s3:*
+              Resource:
+                - !Sub arn:aws:s3:::laughingatnames-${Environment}/*
+                - !Sub arn:aws:s3:::laughingatnames-${Environment}
+              Principal:
+                AWS:
+                  - 802770908406
+
+          # - - Effect: Allow
+          #    Action:
+          #      - s3:*
+          #    Resource:
+          #      - !Sub arn:aws:s3:::laughingatnames-${Environment}/*
+          #      - !Sub arn:aws:s3:::laughingatnames-${Environment}
+          #    Principal:
+          #      AWS:
+          # supposed to be github runner IAM, adding account ID so it doesn't break build
+          #        - 802770908406
+          - - Effect: Allow
+              Action:
+                - s3:ObjectOwnerOverrideToBucketOwner
+              Principal:
+                AWS:
+                  - 802770908406
+              Resource:
+                - !Sub arn:aws:s3:::laughingatnames-${Environment}/*
+                - !Sub arn:aws:s3:::laughingatnames-${Environment}
+
+Outputs:
+  LaughingAtNamesDistributionId:
+    Description: Laughing At Names Distribution ID
+    Value: !Ref LaughingAtNamesDistribution
+    Export:
+      Name: !Sub laughingatnames-${Environment}-cloudfront-distribution-id
