@@ -5,6 +5,7 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const jimp = require("jimp");
+
 const app = express();
 
 app.use(cors());
@@ -34,15 +35,14 @@ app.post("/upload", (req, res, next) => {
 
   upload(req, res, async (err) => {
     const { filename: image } = req.file;
-    console.log(req.file.destination);
     jimp.read(req.file.path, (err, img) => {
-      console.log(img);
       if (err) {
         console.log(err);
         res.status(500);
       }
+      const SCALE = 512 / img.bitmap.width;
       img
-        .resize(512, 512)
+        .resize(img.bitmap.width * SCALE, img.bitmap.height * SCALE)
         .quality(60)
         .write(path.resolve(req.file.destination, "resized", image));
       fs.unlinkSync(req.file.path);
