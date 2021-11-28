@@ -16,7 +16,6 @@ function UploadButton() {
   const [imageSources, setImageSources] = useState<Array<string>>([]);
 
   const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
-    console.log("input");
     e.preventDefault();
     if (e.target.files) {
       const file = e.target.files[0];
@@ -54,7 +53,7 @@ function UploadButton() {
       </Role>
       {imageSources.length > 0 &&
         imageSources.map((v) => {
-          return <img key={v} src={`${API_URL}/public/` + v}></img>;
+          return <img key={v.slice(0, 20)} src={v}></img>;
         })}
     </>
   );
