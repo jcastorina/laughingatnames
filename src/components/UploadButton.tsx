@@ -6,6 +6,8 @@ import {
   useDisclosure,
 } from "reakit";
 
+const API_URL = process?.env.API_URL || "http://127.0.0.1:3001";
+
 function UploadButton() {
   const state = useDisclosureState({ visible: true });
   const contentProps = useDisclosureContent(state);
@@ -25,7 +27,7 @@ function UploadButton() {
   };
 
   const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
-    fetch("http://127.0.0.1:3001/upload", {
+    fetch(`${API_URL}/upload`, {
       method: "post",
       body: imageFile,
     })
@@ -34,20 +36,10 @@ function UploadButton() {
   };
 
   useEffect(() => {
-    // if (imageSources.length) {
-    //   fetch("http://127.0.0.1:3001/public/");
-    // }
-  }, [imageSources.length]);
-
-  useEffect(() => {
-    fetch("http://127.0.0.1:3001/files", { method: "get" })
+    fetch(`${API_URL}/files`, { method: "get" })
       .then((res) => res.json())
       .then((json) => setImageSources(json));
   }, []);
-
-  useEffect(() => {
-    console.log(imageFile, "this happened");
-  }, [imageFile]);
 
   return (
     <>
@@ -60,9 +52,9 @@ function UploadButton() {
           Gimme da pz
         </button>
       </Role>
-      {imageSources.length &&
+      {imageSources.length > 0 &&
         imageSources.map((v) => {
-          return <img key={v} src={"http://127.0.0.1:3001/public/" + v}></img>;
+          return <img key={v} src={`${API_URL}/public/` + v}></img>;
         })}
     </>
   );

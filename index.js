@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const multer = require("multer");
@@ -5,6 +6,35 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const jimp = require("jimp");
+const AWS = require("aws-sdk");
+
+const albumBucketName = process.env.albumBucketName;
+const IdentityPoolId = process.env.IdentityPoolId;
+const bucketRegion = process.env.bucketRegion;
+
+AWS.config.update({
+  region: bucketRegion,
+  credentials: new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: IdentityPoolId,
+  }),
+});
+
+var s3 = new AWS.S3({
+  apiVersion: "2006-03-01",
+  params: { Bucket: albumBucketName },
+});
+
+function listAlbums() {
+  s3.listObjects({ Delimiter: "/" }, function (err, data) {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log(data);
+    }
+  });
+}
+
+listAlbums();
 
 const app = express();
 
@@ -40,7 +70,7 @@ app.post("/upload", (req, res, next) => {
         console.log(err);
         res.status(500);
       }
-      const SCALE = 512 / img.bitmap.width;
+      const SCALE = 400 / img.bitmap.width;
       img
         .resize(img.bitmap.width * SCALE, img.bitmap.height * SCALE)
         .quality(60)
@@ -51,16 +81,14 @@ app.post("/upload", (req, res, next) => {
   });
 });
 
-app.get("/files", (req, res, next) => {
-  const files = fs.readdirSync("public/resized");
-  return res.json(files);
-});
+app.get("/files", (req, res) =>
+  res.json(fs.readdirSync("public/resized").reverse())
+);
 
-app.get("/public/:id", (req, res, next) => {
+app.get("/public/:id", (req, res) => {
   const file = path.join(__dirname, `/public/resized/${req.params.id}`);
   const s = fs.createReadStream(file);
   s.on("open", () => {
-    res.header("Content-Type", "image/png");
     s.pipe(res);
   });
   s.on("error", () => {
