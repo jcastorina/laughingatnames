@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "webpack": "webpack",
-    "start": "webpack serve",
+    "client": "webpack serve",
     "server": "node index.js"
   },
   "repository": {
@@ -48,10 +48,12 @@
     "fs": "0.0.1-security",
     "multer": "^1.4.3",
     "multer-s3": "^2.10.0",
+    "rc-slider": "^9.7.4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "reakit": "^1.3.11",
     "sharp": "^0.29.3",
-    "styled-components": "^5.3.3"
+    "styled-components": "^5.3.3",
+    "webrtc-adapter": "^8.1.0"
   }
 }
