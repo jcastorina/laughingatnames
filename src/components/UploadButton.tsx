@@ -9,7 +9,7 @@ import {
 const API_URL = process?.env.API_URL || "http://127.0.0.1:3001";
 
 function UploadButton() {
-  const state = useDisclosureState({ visible: true });
+  const state = useDisclosureState({ visible: false });
   const contentProps = useDisclosureContent(state);
   const disclosureProps = useDisclosure(state);
   const [imageFile, setImageFile] = useState<FormData>();
@@ -34,11 +34,11 @@ function UploadButton() {
       .catch((err) => console.error(err));
   };
 
-  useEffect(() => {
-    fetch(`${API_URL}/files`, { method: "get" })
-      .then((res) => res.json())
-      .then((json) => setImageSources(json));
-  }, []);
+  // useEffect(() => {
+  //   fetch(`${API_URL}/files`, { method: "get" })
+  //     .then((res) => res.json())
+  //     .then((json) => setImageSources(json));
+  // }, []);
 
   return (
     <>
@@ -50,11 +50,11 @@ function UploadButton() {
         <button onClick={handleSubmit} disabled={!imageFile}>
           Gimme da pz
         </button>
+        {imageSources.length > 0 &&
+          imageSources.map((v) => {
+            return <img key={v.slice(0, 20)} src={v}></img>;
+          })}
       </Role>
-      {imageSources.length > 0 &&
-        imageSources.map((v) => {
-          return <img key={v.slice(0, 20)} src={v}></img>;
-        })}
     </>
   );
 }
